@@ -45,6 +45,13 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;color:#555;user-select:none;}
   .chip.on{background:var(--gold-soft);border-color:var(--gold);color:var(--pine-dark);font-weight:500;}
+  .activity-list{margin-top:4px;}
+  .activity-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);gap:12px;}
+  .activity-row:last-child{border-bottom:none;}
+  .activity-label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;}
+  .activity-label input{accent-color:var(--pine);width:16px;height:16px;}
+  .activity-charge{width:120px;margin:0;padding:6px 8px;font-size:13px;}
+  .activity-charge:disabled{opacity:.45;}
   .room-block{border-top:3px solid var(--gold);}
   .room-block .sec-head{background:var(--gold-soft);align-items:center;}
   .room-name-input{font-family:'IBM Plex Serif',serif;font-size:17px;border:none;background:transparent;color:var(--pine-dark);font-weight:600;padding:2px 4px;border-bottom:1px dashed #C9AF7B;width:60%;}
@@ -145,12 +152,34 @@ const HOTEL_SECTIONS = [
     {id:'bar', label:'Bar'},
   ]},
   { title:"Wellness & Recreation", items:[
-    {id:'pool', label:'Swimming Pool'},
+    {id:'pool', label:'Swimming Pool',
+      dropdowns:[{label:'Pool Type',opts:['Indoor','Outdoor']},{label:'Suitable for',opts:['All ages',"Kid's only",'Adult only']}],
+      multiselect:{label:'Pool features and characteristics',opts:['Roof top','Infinity edge','Temperature-controlled Pool','Glass edge pool','Lap pool','Freeform Pool','Wave Pool']},
+      textFields:[{id:'size', label:'Pool size', placeholder:'e.g. 30 x 15 ft'}],
+      subYesNo:[{id:'winter_access', label:"Accessible during winter season?"}]
+    },
     {id:'gym', label:'Gym / Fitness Centre'},
     {id:'spa', label:'Spa'},
   ]},
   { title:"Transfers", items:[
     {id:'airport_transfer', label:'Airport Transfers', dropdowns:[{label:'Charge',opts:['Free','Paid']}], multiselect:{label:'Vehicle type',opts:['Private','Shared']}},
+  ]},
+  { title:"Business Center & Conference", items:[
+    {id:'banquet', label:'Banquet Hall',
+      textFields:[{id:'capacity',label:'Seating capacity',placeholder:'e.g. 150 pax'},{id:'size',label:'Size',placeholder:'e.g. 2000 sq ft'}],
+      multiselect:{label:'Facilities available',opts:['Projector','Audio/Video system','Whiteboard','Catering','Wifi','Stage','Podium']}
+    },
+    {id:'conference_room', label:'Conference Room',
+      textFields:[{id:'capacity',label:'Seating capacity',placeholder:'e.g. 40 pax'},{id:'size',label:'Size',placeholder:'e.g. 800 sq ft'}],
+      multiselect:{label:'Facilities available',opts:['Projector','Audio/Video system','Whiteboard','Catering','Wifi','Video conferencing','Podium']}
+    },
+  ]},
+  { title:"Pet Essentials", items:[
+    {id:'pet_friendly', label:'Pet Friendly', multiselect:{label:'Available for pets',opts:['Pet bowl','Pet food available','Pet bed','Pet-sitting service']}},
+  ]},
+  { title:"Sports & Activities", items:[
+    {id:'indoor_games', label:'Indoor Games', activityList:['Table Tennis','Billiards / Pool','Carrom','Chess','Board Games','Video Games / Gaming Zone']},
+    {id:'outdoor_games', label:'Outdoor Games', activityList:['Badminton','Volleyball','Cricket Nets','Football','Basketball','Cycling','Trekking','Bonfire','ATV Ride','Boating']},
   ]},
 ];
 
@@ -170,6 +199,9 @@ const ROOM_SECTIONS = [
     {id:'ac', label:'Air Conditioning', dropdowns:[{label:'Control',opts:['Room controlled','Central']},{label:'Mode',opts:['All-weather (hot & cold)','Cooling only']}]},
     {id:'iron', label:'Iron / Ironing Board'},
     {id:'safe', label:'Safe'},
+    {id:'smoking_room', label:'Smoking Room'},
+    {id:'blackout_curtain', label:'Blackout Curtain'},
+    {id:'refrigerator', label:'Refrigerator'},
   ]},
   { title:"Media & Entertainment", items:[
     {id:'tv', label:'TV', multiselect:{label:'Type',opts:['LCD','LED','Smart TV','Satellite / cable channels']}},
@@ -186,6 +218,24 @@ const ROOM_SECTIONS = [
 // ---------- RENDER HELPERS ----------
 function renderItem(item, prefix){
   const name = `${prefix}__${item.id}`;
+
+  if(item.activityList){
+    const rows = item.activityList.map(o => `
+      <div class="activity-row">
+        <label class="activity-label"><input type="checkbox" class="activity-check" data-val="${o}"> ${o}</label>
+        <select class="activity-charge" disabled>
+          <option value="">Charge</option>
+          <option value="Free">Free</option>
+          <option value="Paid">Paid</option>
+        </select>
+      </div>`).join('');
+    return `
+      <div class="item">
+        <label class="q" style="display:block;margin-bottom:10px;">${item.label}</label>
+        <div class="activity-list" data-activity-group="${name}">${rows}</div>
+      </div>`;
+  }
+
   let extraHtml = '';
   if(item.dropdowns){
     item.dropdowns.forEach((d,i)=>{
@@ -196,11 +246,28 @@ function renderItem(item, prefix){
         </select>`;
     });
   }
+  if(item.textFields){
+    item.textFields.forEach(tf=>{
+      extraHtml += `<span class="field-label">${tf.label}</span>
+        <input type="text" placeholder="${tf.placeholder||''}" data-field="${name}__tf_${tf.id}" style="width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;margin-bottom:8px;">`;
+    });
+  }
   if(item.multiselect){
     extraHtml += `<span class="field-label">${item.multiselect.label}</span>
       <div class="chips" data-field="${name}__ms">
         ${item.multiselect.opts.map(o=>`<div class="chip" data-val="${o}">${o}</div>`).join('')}
       </div>`;
+  }
+  if(item.subYesNo){
+    item.subYesNo.forEach(sy=>{
+      extraHtml += `<div class="item-row" style="margin-top:10px;">
+          <span class="field-label" style="margin:0;">${sy.label}</span>
+          <div class="yn">
+            <label><input type="radio" name="${name}__sub_${sy.id}" value="No" checked> No</label>
+            <label><input type="radio" name="${name}__sub_${sy.id}" value="Yes"> Yes</label>
+          </div>
+        </div>`;
+    });
   }
   if(item.fileUpload){
     extraHtml += `<span class="field-label">${item.fileUpload.label}</span>
@@ -239,6 +306,13 @@ function wireYesNo(container){
   });
   container.querySelectorAll('.chip').forEach(chip=>{
     chip.addEventListener('click', ()=> chip.classList.toggle('on'));
+  });
+  container.querySelectorAll('.activity-check').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const sel = e.target.closest('.activity-row').querySelector('.activity-charge');
+      sel.disabled = !e.target.checked;
+      if(!e.target.checked) sel.value = '';
+    });
   });
 }
 
@@ -323,6 +397,23 @@ function collectSectionData(container, sections, prefix){
     out[secKey] = {};
     sec.items.forEach(item=>{
       const name = `${prefix}__${sectionSlug(sec.title)}__${item.id}`;
+
+      if(item.activityList){
+        const group = container.querySelector(`[data-activity-group="${name}"]`);
+        const activities = [];
+        if(group){
+          group.querySelectorAll('.activity-row').forEach(row=>{
+            const cb = row.querySelector('.activity-check');
+            if(cb && cb.checked){
+              const sel = row.querySelector('.activity-charge');
+              activities.push({ name: cb.dataset.val, charge: sel ? sel.value : '' });
+            }
+          });
+        }
+        out[secKey][item.label] = { activities };
+        return;
+      }
+
       const checked = container.querySelector(`input[name="${name}"]:checked`);
       const val = { answer: checked ? checked.value : 'No' };
       if(item.dropdowns){
@@ -331,10 +422,22 @@ function collectSectionData(container, sections, prefix){
           return { field: d.label, value: sel ? sel.value : '' };
         });
       }
+      if(item.textFields){
+        val.textFields = item.textFields.map(tf=>{
+          const inp = container.querySelector(`input[data-field="${name}__tf_${tf.id}"]`);
+          return { field: tf.label, value: inp ? inp.value.trim() : '' };
+        });
+      }
       if(item.multiselect){
         const chipsWrap = container.querySelector(`[data-field="${name}__ms"]`);
         const chosen = chipsWrap ? [...chipsWrap.querySelectorAll('.chip.on')].map(c=>c.dataset.val) : [];
         val.selected = chosen;
+      }
+      if(item.subYesNo){
+        val.subAnswers = item.subYesNo.map(sy=>{
+          const sc = container.querySelector(`input[name="${name}__sub_${sy.id}"]:checked`);
+          return { field: sy.label, value: sc ? sc.value : 'No' };
+        });
       }
       out[secKey][item.label] = val;
     });
