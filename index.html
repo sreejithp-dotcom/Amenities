@@ -171,7 +171,7 @@ const HOTEL_SECTIONS = [
     },
     {id:'conference_room', label:'Conference Room',
       textFields:[{id:'capacity',label:'Seating capacity',placeholder:'e.g. 40 pax'},{id:'size',label:'Size',placeholder:'e.g. 800 sq ft'}],
-      multiselect:{label:'Facilities available',opts:['Projector','Audio/Video system','Whiteboard','Catering','Wifi','Video conferencing','Podium']}
+      multiselect:{label:'Facilities available',opts:['Projector','Audio/Video system','Whiteboard','Catering','Wifi','Video conferencing''Stage','Podium']}
     },
   ]},
   { title:"Pet Essentials", items:[
@@ -335,8 +335,16 @@ function addRoomCategory(){
       <button class="remove-room" type="button" data-remove>Remove</button>
     </div>
     <div class="item">
-      <span class="field-label">Total rooms in this category</span>
-      <input type="number" min="0" value="0" class="room-total-input" data-room-total style="width:110px;padding:8px;border:1px solid var(--line);border-radius:6px;">
+      <div class="top-fields" style="grid-template-columns:1fr 1fr;">
+        <div>
+          <label>Total rooms in this category</label>
+          <input type="number" min="0" value="0" class="room-total-input" data-room-total>
+        </div>
+        <div>
+          <label>Room size</label>
+          <input type="text" placeholder="e.g. 250 sq ft" data-room-size>
+        </div>
+      </div>
       <div class="room-numbers-wrap" data-room-numbers style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;"></div>
     </div>
     ${ROOM_SECTIONS.map(sec => `
@@ -461,6 +469,7 @@ async function submitForm(){
     const roomNumbers = [...block.querySelectorAll('[data-room-numbers] input')].map(i=>i.value.trim()).filter(Boolean);
     return {
       categoryName: block.querySelector('[data-room-name]').value.trim() || 'Unnamed room category',
+      roomSize: block.querySelector('[data-room-size]').value.trim(),
       totalRooms,
       roomNumbers,
       amenities: collectSectionData(block, ROOM_SECTIONS, prefix)
